@@ -1,0 +1,297 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name='viewport' content='width=device-width, initial-scale=1'/>
+    <title>God of Quiz</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <h1>⚡ God of Quiz ⚡</h1>
+        <div class="quiz">
+            <div id="timer">⏳ 10</div>
+            <h2 id="question">Question goes here</h2>
+            <div id="answer-buttons"></div>
+            <div class="progress-bar">
+                <div id="progress" style="width: 0%;"></div>
+            </div>
+            <button id="next-btn">Next</button>
+        </div>
+        <div id="score-board" class="hide">
+            <h2>🏆 Your Final Score:</h2>
+            <p id="final-score"></p>
+            <button onclick="startQuiz()">Play Again</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name='viewport' content='width=device-width, initial-scale=1'/>
+    <title>God of Quiz</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <h1>⚡ God of Quiz ⚡</h1>
+        <div class="quiz">
+            <div id="timer">⏳ 10</div>
+            <h2 id="question">Question goes here</h2>
+            <div id="answer-buttons"></div>
+            <div class="progress-bar">
+                <div id="progress" style="width: 0%;"></div>
+            </div>
+            <button id="next-btn">Next</button>
+        </div>
+        <div id="score-board" class="hide">
+            <h2>🏆 Your Final Score:</h2>
+            <p id="final-score"></p>
+            <button onclick="startQuiz()">Play Again</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html><style>* {
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+    box-sizing: border-box;
+}
+body {
+    background: linear-gradient(135deg, #000428, #004e92);
+    color: #fff;
+    min-height: 100vh;
+}
+.app {
+    background: #1e1e2f;
+    width: 90%;
+    max-width: 600px;
+    margin: 80px auto;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 0 25px rgba(255,255,255,0.1);
+    text-align: center;
+}
+.app h1 {
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+#timer {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+.quiz h2 {
+    font-size: 20px;
+    margin: 15px 0;
+}
+.btn {
+    background: #282c34;
+    color: #fff;
+    border: 1px solid #555;
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.btn:hover:not(:disabled) {
+    background: #0f0f3e;
+}
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+#next-btn {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background-color: #6c63ff;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    display: none;
+}
+.correct { background-color: #28a745; }
+.incorrect { background-color: #dc3545; }
+.progress-bar {
+    width: 100%;
+    height: 10px;
+    background: #444;
+    margin-top: 15px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+#progress {
+    height: 10px;
+    background: #6c63ff;
+    transition: 0.5s;
+}
+#score-board {
+    display: none;
+}
+#score-board.show {
+    display: block;
+}
+.hide {
+    display: none;
+}</style><script>const questions = [
+    {
+        question: "How many minutes are in a full week?",
+        answers: [
+            { text: "11,223", correct: false },
+            { text: "10,080", correct: true },
+            { text: "12,456", correct: false },
+            { text: "45,678", correct: false },
+        ]
+    },
+    {
+        question: "Which planet has the most moons?",
+        answers: [
+            { text: "Earth", correct: false },
+            { text: "Saturn", correct: true },
+            { text: "Venus", correct: false },
+            { text: "Mars", correct: false },
+        ]
+    },
+    {
+        question: "Fastest bird in the world?",
+        answers: [
+            { text: "Swift", correct: false },
+            { text: "Peregrine Falcon", correct: true },
+            { text: "Ostrich", correct: false },
+            { text: "Eagle", correct: false },
+        ]
+    },
+    {
+        question: "Where is the Chernobyl plant located?",
+        answers: [
+            { text: "Iran", correct: false },
+            { text: "Ukraine", correct: true },
+            { text: "Germany", correct: false },
+            { text: "Russia", correct: false },
+        ]
+    },
+    {
+        question: "Capital of India?",
+        answers: [
+            { text: "Andhra Pradesh", correct: false },
+            { text: "Telangana", correct: false },
+            { text: "Delhi", correct: true },
+            { text: "Tamil Nadu", correct: false },
+        ]
+    },
+];
+
+const questionElement = document.getElementById("question");
+const answerButtons = document.getElementById("answer-buttons");
+const nextButton = document.getElementById("next-btn");
+const timerElement = document.getElementById("timer");
+const progressBar = document.getElementById("progress");
+const scoreBoard = document.getElementById("score-board");
+const finalScore = document.getElementById("final-score");
+
+let currentQuestionIndex = 0;
+let score = 0;
+let countdown;
+let timeLeft = 10;
+
+function startQuiz() {
+    currentQuestionIndex = 0;
+    score = 0;
+    questions.sort(() => Math.random() - 0.5); // Shuffle
+    scoreBoard.classList.remove("show");
+    document.querySelector(".quiz").classList.remove("hide");
+    showQuestion();
+}
+
+function showQuestion() {
+    resetState();
+    startTimer();
+    let currentQuestion = questions[currentQuestionIndex];
+    questionElement.innerText = currentQuestion.question;
+    currentQuestion.answers.forEach(answer => {
+        const button = document.createElement("button");
+        button.innerText = answer.text;
+        button.classList.add("btn");
+        if (answer.correct) {
+            button.dataset.correct = answer.correct;
+        }
+        button.addEventListener("click", selectAnswer);
+        answerButtons.appendChild(button);
+    });
+    updateProgress();
+}
+
+function resetState() {
+    clearInterval(countdown);
+    timeLeft = 10;
+    timerElement.innerText = `⏳ ${timeLeft}`;
+    nextButton.style.display = "none";
+    while (answerButtons.firstChild) {
+        answerButtons.removeChild(answerButtons.firstChild);
+    }
+}
+
+function startTimer() {
+    countdown = setInterval(() => {
+        timeLeft--;
+        timerElement.innerText = `⏳ ${timeLeft}`;
+        if (timeLeft <= 0) {
+            clearInterval(countdown);
+            autoSelect();
+        }
+    }, 1000);
+}
+
+function autoSelect() {
+    const buttons = answerButtons.querySelectorAll(".btn");
+    buttons.forEach(button => {
+        if (button.dataset.correct === "true") {
+            button.classList.add("correct");
+        } else {
+            button.classList.add("incorrect");
+        }
+        button.disabled = true;
+    });
+    nextButton.style.display = "block";
+}
+
+function selectAnswer(e) {
+    clearInterval(countdown);
+    const selectedBtn = e.target;
+    const isCorrect = selectedBtn.dataset.correct === "true";
+    selectedBtn.classList.add(isCorrect ? "correct" : "incorrect");
+    if (isCorrect) score++;
+    Array.from(answerButtons.children).forEach(button => {
+        button.disabled = true;
+        if (button.dataset.correct === "true") button.classList.add("correct");
+    });
+    nextButton.style.display = "block";
+}
+
+function showScore() {
+    document.querySelector(".quiz").classList.add("hide");
+    scoreBoard.classList.add("show");
+    finalScore.innerText = `You scored ${score} out of ${questions.length}!`;
+}
+
+function updateProgress() {
+    const percent = ((currentQuestionIndex) / questions.length) * 100;
+    progressBar.style.width = `${percent}%`;
+}
+
+nextButton.addEventListener("click", () => {
+    currentQuestionIndex++;
+    if (currentQuestionIndex < questions.length) {
+        showQuestion();
+    } else {
+        updateProgress();
+        showScore();
+    }
+});
+
+startQuiz();</script>
