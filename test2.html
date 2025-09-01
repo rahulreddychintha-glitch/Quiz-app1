@@ -1,0 +1,338 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quiz App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="quiz-container">
+    <h1>God of Quiz</h1>
+
+    <!-- Quiz Section -->
+    <div id="quiz" class="quiz">
+      <div id="question" class="question"></div>
+      <div id="answer-buttons" class="btn-grid"></div>
+
+      <div id="controls">
+        <button id="prev-btn" class="btn">⬅ Previous</button>
+        <button id="next-btn" class="btn">Next ➡</button>
+        <button id="exit-btn" class="btn">Exit</button>
+      </div>
+
+      <div id="timer" class="timer"></div>
+      <div id="progress-bar"><div id="progress"></div></div>
+      <div id="status">Question 1 of X | Score: 0</div>
+    </div>
+
+    <!-- Score Section -->
+    <div id="score-container" class="hide">
+      <h2>Quiz Finished 🎉</h2>
+      <p id="score"></p>
+      <button id="review-btn" class="btn">Review Answers</button>
+    </div>
+
+    <!-- Review Section -->
+    <div id="review-container" class="hide">
+      <h2>Review Your Answers</h2>
+      <div id="review-list"></div>
+      <button id="restart-btn" class="btn">Restart Quiz</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html><style>body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #1e1e2f, #2b2b45);
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.quiz-container {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+  width: 500px;
+  max-width: 90%;
+  text-align: center;
+}
+
+h1 {
+  margin-bottom: 20px;
+  color: #ffcc00;
+}
+
+.question {
+  font-size: 20px;
+  margin-bottom: 15px;
+}
+
+.btn-grid {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background: #444;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn:hover {
+  background: #666;
+}
+
+.correct {
+  background: #2e7d32 !important;
+}
+
+.incorrect {
+  background: #c62828 !important;
+}
+
+#controls {
+  margin: 15px 0;
+}
+
+.timer {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #ffcc00;
+}
+
+#progress-bar {
+  background: #444;
+  height: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}
+
+#progress {
+  background: #ffcc00;
+  height: 10px;
+  border-radius: 5px;
+  width: 0%;
+}
+
+.hide {
+  display: none;
+}
+
+#status {
+  font-size: 14px;
+  margin-top: 10px;
+}</style><script>const questions = [
+  {
+    question: "What is the capital of France?",
+    answers: [
+      { text: "Berlin", correct: false },
+      { text: "Paris", correct: true },
+      { text: "Madrid", correct: false },
+      { text: "Rome", correct: false }
+    ]
+  },
+  {
+    question: "Which planet is known as the Red Planet?",
+    answers: [
+      { text: "Mars", correct: true },
+      { text: "Jupiter", correct: false },
+      { text: "Venus", correct: false },
+      { text: "Saturn", correct: false }
+    ]
+  },
+  {
+    question: "What is 2 + 2?",
+    answers: [
+      { text: "3", correct: false },
+      { text: "4", correct: true },
+      { text: "5", correct: false },
+      { text: "6", correct: false }
+    ]
+  },
+  {
+    question: "Who wrote 'Romeo and Juliet'?",
+    answers: [
+      { text: "William Shakespeare", correct: true },
+      { text: "Charles Dickens", correct: false },
+      { text: "J.K. Rowling", correct: false },
+      { text: "Mark Twain", correct: false }
+    ]
+  },
+  {
+    question: "Which gas do plants absorb during photosynthesis?",
+    answers: [
+      { text: "Oxygen", correct: false },
+      { text: "Carbon Dioxide", correct: true },
+      { text: "Nitrogen", correct: false },
+      { text: "Hydrogen", correct: false }
+    ]
+  }
+];
+
+const questionElement = document.getElementById("question");
+const answerButtons = document.getElementById("answer-buttons");
+const nextButton = document.getElementById("next-btn");
+const prevButton = document.getElementById("prev-btn");
+const exitButton = document.getElementById("exit-btn");
+const timerElement = document.getElementById("timer");
+const progress = document.getElementById("progress");
+const statusElement = document.getElementById("status");
+
+const scoreContainer = document.getElementById("score-container");
+const scoreText = document.getElementById("score");
+const reviewBtn = document.getElementById("review-btn");
+const reviewContainer = document.getElementById("review-container");
+const reviewList = document.getElementById("review-list");
+const restartBtn = document.getElementById("restart-btn");
+
+let currentQuestionIndex = 0;
+let score = 0;
+let timer;
+let timeLeft = 15;
+let userAnswers = Array(questions.length).fill(null);
+
+function startQuiz() {
+  currentQuestionIndex = 0;
+  score = 0;
+  showQuestion(true);
+}
+
+function showQuestion(startTimer = true) {
+  resetState();
+  let currentQuestion = questions[currentQuestionIndex];
+  questionElement.innerText = currentQuestion.question;
+
+  currentQuestion.answers.forEach((answer, i) => {
+    const button = document.createElement("button");
+    button.innerText = answer.text;
+    button.classList.add("btn");
+
+    if (userAnswers[currentQuestionIndex] === i) {
+      button.classList.add(answer.correct ? "correct" : "incorrect");
+    }
+
+    button.addEventListener("click", () => selectAnswer(answer, i));
+    answerButtons.appendChild(button);
+  });
+
+  prevButton.style.display = currentQuestionIndex > 0 ? "inline-block" : "none";
+  nextButton.style.display = "inline-block";
+  exitButton.style.display = "inline-block";
+
+  updateProgress();
+  updateStatus();
+
+  clearInterval(timer);
+  if (startTimer) {
+    resetTimer();
+  } else {
+    timerElement.innerText = "⏸ Paused (Reviewing)";
+  }
+}
+
+function resetState() {
+  answerButtons.innerHTML = "";
+}
+
+function selectAnswer(answer, index) {
+  userAnswers[currentQuestionIndex] = index;
+  if (answer.correct) {
+    score++;
+  }
+  Array.from(answerButtons.children).forEach((button, i) => {
+    const correct = questions[currentQuestionIndex].answers[i].correct;
+    button.classList.add(correct ? "correct" : "incorrect");
+  });
+}
+
+function updateProgress() {
+  const progressPercent = ((currentQuestionIndex + 1) / questions.length) * 100;
+  progress.style.width = progressPercent + "%";
+}
+
+function updateStatus() {
+  let completed = userAnswers.filter(a => a !== null).length;
+  let remaining = questions.length - completed;
+  statusElement.innerText = `Question ${currentQuestionIndex + 1} of ${questions.length} | Completed: ${completed} | Remaining: ${remaining} | Score: ${score}`;
+}
+
+function resetTimer() {
+  clearInterval(timer);
+  timeLeft = 15;
+  timerElement.innerText = `⏳ Time Left: ${timeLeft}s`;
+  timer = setInterval(() => {
+    timeLeft--;
+    timerElement.innerText = `⏳ Time Left: ${timeLeft}s`;
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      nextQuestion();
+    }
+  }, 1000);
+}
+
+function nextQuestion() {
+  currentQuestionIndex++;
+  if (currentQuestionIndex < questions.length) {
+    showQuestion(true);
+  } else {
+    showScore();
+  }
+}
+
+function showScore() {
+  document.getElementById("quiz").classList.add("hide");
+  scoreContainer.classList.remove("hide");
+  scoreText.innerText = `Your Score: ${score} / ${questions.length}`;
+}
+
+nextButton.addEventListener("click", () => {
+  nextQuestion();
+});
+
+prevButton.addEventListener("click", () => {
+  if (currentQuestionIndex > 0) {
+    clearInterval(timer); // stop timer
+    currentQuestionIndex--;
+    showQuestion(false);  // show question without starting timer
+  }
+});
+
+exitButton.addEventListener("click", () => {
+  showScore();
+});
+
+reviewBtn.addEventListener("click", () => {
+  scoreContainer.classList.add("hide");
+  reviewContainer.classList.remove("hide");
+  reviewList.innerHTML = "";
+  questions.forEach((q, i) => {
+    const div = document.createElement("div");
+    div.innerHTML = `<p><strong>Q${i+1}:</strong> ${q.question}<br>
+    Your Answer: ${userAnswers[i] !== null ? q.answers[userAnswers[i]].text : "Not Answered"}<br>
+    Correct Answer: ${q.answers.find(a => a.correct).text}</p>`;
+    reviewList.appendChild(div);
+  });
+});
+
+restartBtn.addEventListener("click", () => {
+  reviewContainer.classList.add("hide");
+  document.getElementById("quiz").classList.remove("hide");
+  userAnswers = Array(questions.length).fill(null);
+  startQuiz();
+});
+
+// Start
+startQuiz();</script>
