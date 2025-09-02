@@ -1,0 +1,324 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">  
+<head>  
+  <meta charset="UTF-8">  
+  <title>IQ Tester App</title>  
+  <style>  
+    body {  
+      font-family: Arial, sans-serif;  
+      background: linear-gradient(135deg, #000000, #001f3f);  
+      color: white;  
+      display: flex;  
+      justify-content: center;  
+      align-items: center;  
+      height: 100vh;  
+      margin: 0;  
+    }  
+    #app {  
+      width: 700px;  
+      background: #0a0a0a;  
+      border-radius: 15px;  
+      padding: 20px;  
+      box-shadow: 0 0 25px #00d0ff;  
+      text-align: center;  
+      overflow-y: auto;  
+      max-height: 95vh;  
+    }  
+    h1, h2, h3 {  
+      color: #00d0ff;  
+      text-shadow: 0 0 10px #00d0ff;  
+    }  
+    .hidden { display: none; }  
+    .question { font-size: 20px; margin-bottom: 15px; min-height: 60px; }  
+    .answers { display: flex; flex-direction: column; align-items: center; }  
+    button {  
+      background: black; color: white; border: 2px solid #00d0ff; border-radius: 10px;  
+      padding: 10px 20px; margin: 8px; cursor: pointer; transition: 0.3s; font-size: 16px;  
+    }  
+    button:hover { background: #001f3f; box-shadow: 0 0 15px #00d0ff; transform: scale(1.05); }  
+    #controls { margin-top: 15px; }  
+    #timer { font-size: 18px; margin-bottom: 10px; color: #ffcc00; text-shadow: 0 0 10px #ffcc00; }  
+    #scoreboard { margin-top: 20px; text-align: left; }  
+    .review { margin-top: 15px; padding: 10px; border: 1px solid #00d0ff; border-radius: 10px; text-align: left; }  
+    .correct { color: #00ff00; }  
+    .wrong { color: #ff4444; }  
+  </style>  
+</head>  
+<body>  
+<div id="app">  
+
+  <!-- Login Page -->  
+  <div id="loginPage">  
+    <h1>Login</h1>  
+    <input type="text" id="loginUser" placeholder="Username"><br><br>  
+    <input type="password" id="loginPass" placeholder="Password"><br><br>  
+    <button onclick="login()">Login</button>  
+    <p>Don't have an account? <a href="#" onclick="showRegister()">Register</a></p>  
+  </div>  
+
+  <!-- Register Page -->  
+  <div id="registerPage" class="hidden">  
+    <h1>Register</h1>  
+    <input type="text" id="regUser" placeholder="Username"><br><br>  
+    <input type="password" id="regPass" placeholder="Password"><br><br>  
+    <button onclick="register()">Register</button>  
+    <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>  
+  </div>  
+
+  <!-- Home Page -->  
+  <div id="homePage" class="hidden">  
+    <h1>Welcome, <span id="currentUser"></span></h1>  
+    <h2>Select a Course to Start IQ Tester</h2>  
+    <button onclick="startIQTester('maths')">Maths</button>  
+    <button onclick="startIQTester('science')">Science</button>  
+    <button onclick="startIQTester('sports')">Sports</button>  
+    <button onclick="startIQTester('hard')">All Courses (Hard)</button>  
+    <br>  
+    <button onclick="logout()">Logout</button>  
+  </div>  
+
+  <!-- IQ Tester Page -->  
+  <div id="quiz" class="hidden">  
+    <div id="timer">Time left: 05:00</div>  
+    <div class="question" id="question"></div>  
+    <div class="answers" id="answers"></div>  
+    <div id="controls">  
+      <button id="prevBtn">Previous</button>  
+      <button id="nextBtn">Next</button>  
+    </div>  
+  </div>  
+
+  <!-- Result Page -->  
+  <div id="result" class="hidden">  
+    <h2>IQ Tester Completed</h2>  
+    <p id="finalScore"></p>  
+    <p id="suggestion"></p>  
+    <div id="scoreboard"></div>  
+    <h3>Review Answers</h3>  
+    <div id="reviewAnswers"></div>  
+    <button onclick="goHome()">Go Home</button>  
+  </div>  
+</div>  
+
+<script>  
+  let questions = [];  
+  let currentQuestionIndex = 0;  
+  let score = 0;  
+  let timer;  
+  let timeLeft = 300;  
+  let userAnswers = [];  
+  let lockedQuestions = new Set();  
+  let currentUser = null;  
+
+  // ========== AUTH SYSTEM ==========  
+  function register(){  
+    let u = document.getElementById("regUser").value;  
+    let p = document.getElementById("regPass").value;  
+    if(!u || !p){ alert("Fill all fields"); return; }  
+    let users = JSON.parse(localStorage.getItem("users")||"{}");  
+    if(users[u]){ alert("User already exists"); return; }  
+    users[u] = p;  
+    localStorage.setItem("users", JSON.stringify(users));  
+    alert("Registered successfully!");  
+    showLogin();  
+  }  
+
+  function login(){  
+    let u = document.getElementById("loginUser").value;  
+    let p = document.getElementById("loginPass").value;  
+    let users = JSON.parse(localStorage.getItem("users")||"{}");  
+    if(users[u] && users[u] === p){  
+      currentUser = u;  
+      localStorage.setItem("currentUser", u);  
+      showHome();  
+    } else { alert("Invalid credentials"); }  
+  }  
+
+  function showRegister(){  
+    document.getElementById("loginPage").classList.add("hidden");  
+    document.getElementById("registerPage").classList.remove("hidden");  
+  }  
+
+  function showLogin(){  
+    document.getElementById("registerPage").classList.add("hidden");  
+    document.getElementById("loginPage").classList.remove("hidden");  
+  }  
+
+  function showHome(){  
+    document.getElementById("loginPage").classList.add("hidden");  
+    document.getElementById("registerPage").classList.add("hidden");  
+    document.getElementById("quiz").classList.add("hidden");  
+    document.getElementById("result").classList.add("hidden");  
+    document.getElementById("homePage").classList.remove("hidden");  
+    document.getElementById("currentUser").textContent = currentUser;  
+  }  
+
+  function logout(){  
+    currentUser = null;  
+    localStorage.removeItem("currentUser");  
+    document.getElementById("homePage").classList.add("hidden");  
+    document.getElementById("quiz").classList.add("hidden");  
+    document.getElementById("result").classList.add("hidden");  
+    showLogin();  
+  }  
+
+  if(localStorage.getItem("currentUser")){  
+    currentUser = localStorage.getItem("currentUser");  
+    showHome();  
+  }  
+
+  // ========== IQ TESTER SYSTEM ==========  
+  async function loadQuestions(course){  
+    let url = "";  
+    if(course === "maths") url = "https://opentdb.com/api.php?amount=10&category=19&type=multiple";  
+    else if(course === "science") url = "https://opentdb.com/api.php?amount=10&category=17&type=multiple";  
+    else if(course === "sports") url = "https://opentdb.com/api.php?amount=10&category=21&type=multiple";  
+    else if(course === "hard") url = "https://opentdb.com/api.php?amount=10&difficulty=hard&type=multiple";  
+
+    let res = await fetch(url);  
+    let data = await res.json();  
+    questions = data.results.map((q) => {  
+      let options = [...q.incorrect_answers];  
+      options.push(q.correct_answer);  
+      options.sort(() => Math.random() - 0.5);  
+      return {  
+        question: q.question,  
+        answers: options.map(opt => ({ text: opt, correct: opt === q.correct_answer }))  
+      };  
+    });  
+    startQuiz();  
+  }  
+
+  function startIQTester(course){  
+    loadQuestions(course);  
+  }  
+
+  function startQuiz(){  
+    currentQuestionIndex = 0;  
+    score = 0;  
+    timeLeft = 300;  
+    userAnswers = Array(questions.length).fill(null);  
+    lockedQuestions.clear();  
+    document.getElementById("homePage").classList.add("hidden");  
+    document.getElementById("result").classList.add("hidden");  
+    document.getElementById("quiz").classList.remove("hidden");  
+    showQuestion();  
+    startTimer();  
+  }  
+
+  function showQuestion(){  
+    const questionObj = questions[currentQuestionIndex];  
+    document.getElementById("question").innerHTML = decodeHTML(questionObj.question);  
+    const answersDiv = document.getElementById("answers");  
+    answersDiv.innerHTML = "";  
+    questionObj.answers.forEach((ans, idx) => {  
+      const btn = document.createElement("button");  
+      btn.textContent = decodeHTML(ans.text);  
+      btn.onclick = () => {  
+        if (!lockedQuestions.has(currentQuestionIndex)) selectAnswer(idx);  
+      };  
+      if(userAnswers[currentQuestionIndex] === idx){  
+        btn.style.background = "#001f3f";  
+        btn.style.boxShadow = "0 0 15px #00d0ff";  
+      }  
+      if(lockedQuestions.has(currentQuestionIndex)){  
+        btn.disabled = true;  
+        btn.style.opacity = "0.6";  
+        btn.style.cursor = "not-allowed";  
+      }  
+      answersDiv.appendChild(btn);  
+    });  
+    document.getElementById("prevBtn").disabled = currentQuestionIndex === 0;  
+    document.getElementById("nextBtn").textContent = currentQuestionIndex === questions.length-1 ? "Submit" : "Next";  
+  }  
+
+  function selectAnswer(idx){  
+    userAnswers[currentQuestionIndex] = idx;  
+    showQuestion();  
+  }  
+
+  document.getElementById("nextBtn").onclick = () => {  
+    if(userAnswers[currentQuestionIndex] !== null){ lockedQuestions.add(currentQuestionIndex); }  
+    if(currentQuestionIndex < questions.length-1){  
+      currentQuestionIndex++; showQuestion();  
+    } else { endQuiz(); }  
+  };  
+
+  document.getElementById("prevBtn").onclick = () => {  
+    if(currentQuestionIndex > 0){ currentQuestionIndex--; showQuestion(); }  
+  };  
+
+  function startTimer(){  
+    clearInterval(timer);  
+    timer = setInterval(() => {  
+      timeLeft--;  
+      const minutes = Math.floor(timeLeft/60);  
+      const seconds = timeLeft%60;  
+      document.getElementById("timer").textContent =   
+        `Time left: ${minutes.toString().padStart(2,"0")}:${seconds.toString().padStart(2,"0")}`;  
+      if(timeLeft<=0){ clearInterval(timer); endQuiz(); }  
+    }, 1000);  
+  }  
+
+  function endQuiz(){  
+    clearInterval(timer);  
+    document.getElementById("quiz").classList.add("hidden");  
+    document.getElementById("result").classList.remove("hidden");  
+    score = 0;  
+    questions.forEach((q, i) => {  
+      if(userAnswers[i] !== null && q.answers[userAnswers[i]].correct){ score++; }  
+    });  
+    const iq = Math.round((score / questions.length) * 150);  
+    document.getElementById("finalScore").textContent = `You scored ${score}/${questions.length}. Estimated IQ: ${iq}`;  
+    let suggestion = "";  
+    if(iq < 70) suggestion = "Very Poor – Needs Improvement.";  
+    else if(iq < 90) suggestion = "Poor – Keep practicing!";  
+    else if(iq < 110) suggestion = "Average – Good effort.";  
+    else if(iq < 130) suggestion = "Good – Above average intelligence.";  
+    else suggestion = "Excellent – Genius level!";  
+    document.getElementById("suggestion").textContent = suggestion;  
+    updateScoreboard(iq);  
+    showReview();  
+  }  
+
+  function updateScoreboard(iq){  
+    let scores = JSON.parse(localStorage.getItem("iqScores")||"{}");  
+    if(!scores[currentUser]) scores[currentUser] = [];  
+    scores[currentUser].push(iq);  
+    localStorage.setItem("iqScores", JSON.stringify(scores));  
+    let scoreboardDiv = document.getElementById("scoreboard");  
+    scoreboardDiv.innerHTML = "<h3>Scoreboard</h3>";  
+    scores[currentUser].forEach((s,i) => {  
+      scoreboardDiv.innerHTML += `<p>Attempt ${i+1}: IQ ${s}</p>`;  
+    });  
+  }  
+
+  function showReview(){  
+    let reviewDiv = document.getElementById("reviewAnswers");  
+    reviewDiv.innerHTML = "";  
+    questions.forEach((q, i) => {  
+      let userAns = userAnswers[i] !== null ? q.answers[userAnswers[i]].text : "Not answered";  
+      let correctAns = q.answers.find(a => a.correct).text;  
+      let div = document.createElement("div");  
+      div.classList.add("review");  
+      div.innerHTML = `  
+        <p><b>Q${i+1}:</b> ${decodeHTML(q.question)}</p>  
+        <p class="${userAns === correctAns ? "correct" : "wrong"}">Your Answer: ${decodeHTML(userAns)}</p>  
+        <p class="correct">Correct Answer: ${decodeHTML(correctAns)}</p>  
+      `;  
+      reviewDiv.appendChild(div);  
+    });  
+  }  
+
+  function goHome(){  
+    showHome();  
+  }  
+
+  function decodeHTML(html){  
+    var txt = document.createElement("textarea");  
+    txt.innerHTML = html;  
+    return txt.value;  
+  }  
+</script>  
+</body>  
+</html>
