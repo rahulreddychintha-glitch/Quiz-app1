@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>IQ Neon Tester — 10 Courses, AI/Online</title>
+<style>
+  :root{
+    --bg:#0a0f1c;
+    --panel:#11182d;
+    --panel-2:#0d1426;
+    --text:#eaf2ff;
+    --muted:#a3b1d6;
+    --brand:#3ddcff;
+    --brand-glow: rgba(61, 220, 255, .45);
+    --bad:#ff6b6b; --good:#49f1a6; --warn:#ffd166;
+    --shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04);
+    --radius: 18px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--text);
+    font-family: Inter, ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial;
+    background:
+      radial-gradient(900px 450px at 110% -10%, rgba(61,220,255,.18), transparent 60%),
+      radial-gradient(900px 450px at -10% 120%, rgba(61,220,255,.18), transparent 60%),
+      linear-gradient(180deg, #0a0f1c, #070b17);
+    overflow-x:hidden;
+  }
+
+  /* --------- layout --------- */
+  .app{display:flex; min-height:100vh}
+  .sidebar{
+    width:240px; min-width:240px; background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border-right:1px solid rgba(255,255,255,.08);
+    padding:18px; position:sticky; top:0; height:100vh;
+  }
+  .main{flex:1; min-width:0; padding:18px}
+  .brand{font-weight:900; font-size:22px; letter-spacing:.02em; display:flex; align-items:center; gap:8px}
+  .brand-dot{width:10px;height:10px;border-radius:50%; background:var(--brand); box-shadow:0 0 20px 6px var(--brand-glow)}
+  .sep{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);margin:14px 0}
+
+  /* neon buttons */
+  .nbtn{
+    width:100%; padding:14px 16px; text-align:left; border-radius:14px; border:1px solid rgba(61,220,255,.35);
+    background:rgba(6,12,24,.75); color:var(--text); font-weight:700; cursor:pointer;
+    box-shadow: 0 0 0 1px rgba(61,220,255,.22) inset, 0 12px 24px rgba(0,0,0,.35),
+                0 0 24px 2px var(--brand-glow), 0 0 60px 10px rgba(0,0,0,.18) inset;
+    transition: transform .06s ease, filter .2s ease, box-shadow .2s ease;
+  }
+  .nbtn:hover{filter:brightness(1.06)}
+  .nbtn:active{transform:translateY(1px)}
+  .nbtn.ghost{opacity:.85}
+  .logout{background:linear-gradient(180deg,#ff8080,#ff5353); border:none; box-shadow:var(--shadow); color:#fff}
+
+  .card{background:linear-gradient(180deg, var(--panel), var(--panel-2));
+        border-radius:18px; padding:18px; box-shadow:var(--shadow)}
+  .headline{font-size: clamp(28px, 4vw, 40px); font-weight:900; line-height:1.1;
+            text-shadow:0 0 24px var(--brand-glow)}
+  .subtitle{opacity:.9}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px}
+  .neon-pill{
+    display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px;
+    border:1px solid rgba(61,220,255,.35); background:rgba(10,17,34,.6);
+    box-shadow: 0 0 24px var(--brand-glow) inset;
+    font-size:12px; text-transform:uppercase; letter-spacing:.14em
+  }
+  .small{font-size:12px; opacity:.88}
+  .row{display:flex; gap:16px; flex-wrap:wrap}
+  .col{flex:1 1 320px}
+  .list{list-style:none; padding:0; margin:0}
+  .list li{display:flex; align-items:center; justify-content:space-between; padding:10px 0;
+           border-bottom:1px dashed rgba(255,255,255,.12)}
+  .progress{height:10px; background:rgba(255,255,255,.08); border-radius:999px; overflow:hidden}
+  .bar{height:100%; background:linear-gradient(90deg, var(--brand), #7cf7ff); width:0%}
+  .btn{appearance:none;border:none;padding:12px 16px;border-radius:12px; font-weight:800;cursor:pointer}
+  .btn-primary{background:linear-gradient(45deg, var(--brand), #7cf7ff); color:#001220}
+  .btn-ghost{background:transparent; border:1px solid rgba(255,255,255,.14); color:var(--text)}
+  .btn-danger{background:linear-gradient(45deg, #ff8a8a, #ff4d4d); color:#fff}
+  .input{width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:#0c1430; color:var(--text)}
+  .label{font-size:12px; opacity:.88; margin-bottom:6px}
+
+  /* auth full-screen */
+  .auth-wrap{display:grid; place-items:center; min-height:100vh; padding:20px}
+  .fade-in{animation: fade .3s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .hidden{display:none!important}
+
+  /* responsive sidebar */
+  @media (max-width: 840px){
+    .sidebar{position:fixed; z-index:10; height:auto; inset:auto 0 auto 0; width:100%; min-width:0; border-right:none; border-bottom:1px solid rgba(255,255,255,.08)}
+    .sidebar .stack{display:flex; gap:10px; align-items:center; overflow:auto}
+    .main{padding-top:96px}
+  }
+
+  /* toast */
+  .toast{position:fixed; right:14px; bottom:14px; background:#0f1933; border:1px solid rgba(255,255,255,.12);
+         padding:12px 14px; border-radius:12px; box-shadow:var(--shadow)}
+</style>
+</head>
+<body>
+
+<!-- ===== AUTH VIEW ===== -->
+<div id="authView" class="auth-wrap">
+  <div class="card" style="width:min(520px,96vw)">
+    <div class="brand"><span class="brand-dot"></span> IQ Neon Tester</div>
+    <div class="subtitle" style="margin-top:6px">Login or create an account to start the challenges.</div>
+    <div class="sep"></div>
+
+    <div class="row">
+      <div class="col">
+        <div class="label">Username</div>
+        <input id="authUser" class="input" placeholder="e.g., nova99" autocomplete="username"/>
+      </div>
+      <div class="col">
+        <div class="label">Password</div>
+        <input id="authPass" type="password" class="input" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div class="col">
+        <button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Login</button>
+      </div>
+      <div class="col">
+        <button class="btn btn-ghost" style="width:100%" onclick="handleRegister()">Register</button>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+    <div class="row">
+      <div class="col">
+        <div class="label">OpenAI API Key (optional)</div>
+        <input id="authKey" class="input" placeholder="sk-... (leave empty to use online public questions)"/>
+      </div>
+      <div class="col">
+        <div class="label">Model</div>
+        <input id="authModel" class="input" value="gpt-4o-mini"/>
+      </div>
+    </div>
+    <div class="small" style="margin-top:8px">If no API key is provided, the app fetches hard questions from free public sources. No predefined questions are stored.</div>
+  </div>
+</div>
+
+<!-- ===== APP VIEW ===== -->
+<div id="app" class="app hidden">
+  <!-- sidebar -->
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-dot"></span> IQ Neon Tester</div>
+    <div class="small" id="userHello" style="margin-top:4px; opacity:.85">Hi, Player</div>
+    <div class="sep"></div>
+    <div class="stack" style="display:grid; gap:12px">
+      <button class="nbtn" onclick="openProfile()">Profile</button>
+      <button class="nbtn" onclick="openCourses()">Courses</button>
+      <button class="nbtn" onclick="openQuizShortcut()">Quiz</button>
+    </div>
+    <div style="flex:1 1 auto"></div>
+    <div class="sep"></div>
+    <button class="nbtn logout" onclick="logout()">Logout</button>
+  </aside>
+
+  <!-- main -->
+  <main class="main">
+    <!-- COURSES HOME -->
+    <section id="coursesView" class="fade-in">
+      <div class="card">
+        <div class="headline">Choose a Course</div>
+        <div class="subtitle">Glowing buttons. Pick any course to see subtopics and start.</div>
+        <div id="courseNeonGrid" class="grid" style="margin-top:16px"></div>
+      </div>
+    </section>
+
+    <!-- COURSE DETAIL -->
+    <section id="courseDetailView" class="hidden fade-in">
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
+          <div>
+            <div class="neon-pill" id="cdPill">Course</div>
+            <div class="headline" id="cdTitle">Course Title</div>
+            <div class="small" id="cdDesc">Course description.</div>
+          </div>
+          <div>
+            <button class="btn btn-ghost" onclick="openCourses()">← Back</button>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div id="topicGrid" class="grid"></div>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="quizView" class="hidden fade-in">
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
+          <div>
+            <div class="neon-pill" id="quizPill">Course</div>
+            <div style="font-weight:900; font-size:22px" id="quizTitle">Topic</div>
+            <div class="small">Total Questions: <span id="qTotal">0</span></div>
+          </div>
+          <div style="min-width:220px">
+            <div class="progress"><div id="qBar" class="bar"></div></div>
+          </div>
+          <div>
+            <button class="btn btn-ghost" onclick="confirmExit()">Exit</button>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div id="qBox" style="min-height:120px"></div>
+        <div id="aBox" style="margin-top:10px"></div>
+        <div class="sep"></div>
+        <div class="small" id="qTip">Tip: eliminate distractors.</div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px">
+          <button id="btnPrev" class="btn btn-ghost" onclick="prevQ()">◀ Prev</button>
+          <button id="btnNext" class="btn btn-primary" onclick="nextQ()">Next ▶</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- REVIEW -->
+    <section id="reviewView" class="hidden fade-in">
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
+          <div>
+            <div class="neon-pill" id="revStamp">Review</div>
+            <div class="headline" id="revHeadline">Results</div>
+            <div class="subtitle">Your answers vs correct, with explanation.</div>
+          </div>
+          <div><button class="btn btn-ghost" onclick="openCourses()">Home</button></div>
+        </div>
+        <div class="sep"></div>
+        <div id="revList"></div>
+      </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="profileView" class="hidden fade-in">
+      <div class="row">
+        <div class="col">
+          <div class="card">
+            <div style="display:flex; align-items:center; justify-content:space-between">
+              <div style="font-weight:900">Your Scoreboard</div>
+              <span class="neon-pill" id="apiModePill">Online</span>
+            </div>
+            <div class="sep"></div>
+            <ul class="list" id="myScores"></ul>
+            <div class="sep"></div>
+            <div class="small">Attempts: <b id="meAttempts">0</b> • Average IQ: <b id="meAvg">–</b></div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card">
+            <div style="display:flex; align-items:center; justify-content:space-between">
+              <div style="font-weight:900">Global Leaderboard</div>
+              <span class="neon-pill">Top 10</span>
+            </div>
+            <div class="sep"></div>
+            <ul class="list" id="globalBoard"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script >
+    /* ==========================
+   IQ Neon Tester — test4.js
+   ========================== */
+
+let state = {
+  user: null,
+  scores: [], // {course, topic, score, total}
+  questions: [],
+  currentQ: 0,
+  course: null,
+  topic: null,
+};
+
+// ========== PREDEFINED QUESTIONS (Sample: Maths → Algebra fully filled with 40+) ==========
+const QUESTIONS = {
+  Maths: {
+    Algebra: [
+      { question: "Solve for x: 2x + 3 = 7", options: ["1", "2", "3", "4"], answer: 1 },
+      { question: "Simplify: (x + 2)(x + 3)", options: ["x² + 5x + 6", "x² + 6x + 5", "x² + 5x + 5", "x² + 6x + 6"], answer: 0 },
+      { question: "What is the value of x if x² = 49?", options: ["5", "6", "7", "8"], answer: 2 },
+      { question: "Factorize: x² - 9", options: ["(x-3)(x+3)", "(x-9)(x+1)", "(x+9)(x-1)", "Prime"], answer: 0 },
+      { question: "If x = 2, find 3x² + 4", options: ["10", "12", "16", "20"], answer: 2 },
+      { question: "Solve: 5x = 20", options: ["2", "3", "4", "5"], answer: 2 },
+      { question: "Simplify: (x+1)²", options: ["x²+2x+1", "x²+x+1", "x²+1", "x²+2"], answer: 0 },
+      { question: "What is the slope of y = 2x + 3?", options: ["1", "2", "3", "0"], answer: 1 },
+      { question: "If f(x) = x², find f(3)", options: ["6", "9", "12", "3"], answer: 1 },
+      { question: "Solve: 4x - 5 = 11", options: ["3", "4", "5", "6"], answer: 3 },
+      { question: "Solve for x: 2x + 3 = 7", options: ["1", "2", "3", "4"], answer: 1 },
+  { question: "Simplify: (x + 2)(x + 3)", options: ["x² + 5x + 6", "x² + 6x + 5", "x² + 5x + 5", "x² + 6x + 6"], answer: 0 },
+  { question: "What is the value of x if x² = 49?", options: ["5", "6", "7", "8"], answer: 2 },
+  { question: "Factorize: x² - 9", options: ["(x-3)(x+3)", "(x-9)(x+1)", "(x+9)(x-1)", "Prime"], answer: 0 },
+  { question: "If x = 2, find 3x² + 4", options: ["10", "12", "16", "20"], answer: 2 },
+  { question: "Solve: 5x = 20", options: ["2", "3", "4", "5"], answer: 2 },
+  { question: "Simplify: (x+1)²", options: ["x²+2x+1", "x²+x+1", "x²+1", "x²+2"], answer: 0 },
+  { question: "What is the slope of y = 2x + 3?", options: ["1", "2", "3", "0"], answer: 1 },
+  { question: "If f(x) = x², find f(3)", options: ["6", "9", "12", "3"], answer: 1 },
+  { question: "Solve: 4x - 5 = 11", options: ["3", "4", "5", "6"], answer: 3 },
+  { question: "Expand: (x + 3)(x - 2)", options: ["x²+x-6", "x²+x+6", "x²-5x+6", "x²+5x-6"], answer: 0 },
+  { question: "Factorize: x² + 5x + 6", options: ["(x+2)(x+3)", "(x+1)(x+6)", "(x+3)(x+4)", "(x+2)(x+4)"], answer: 0 },
+  { question: "Solve: x² - 16 = 0", options: ["x=±4", "x=4", "x=-4", "x=0"], answer: 0 },
+  { question: "Simplify: 2x + 3x - 5", options: ["5x - 5", "6x", "5x + 5", "x - 5"], answer: 0 },
+  { question: "What is x if 3x + 7 = 16?", options: ["2", "3", "4", "5"], answer: 2 },
+  { question: "Simplify: (2x)(3x)", options: ["5x²", "6x²", "6x", "5x"], answer: 1 },
+  { question: "Solve: x/2 = 5", options: ["2.5", "5", "10", "12"], answer: 2 },
+  { question: "Expand: (x-4)(x+5)", options: ["x²+x-20", "x²+x+20", "x²-9x+20", "x²+9x-20"], answer: 0 },
+  { question: "Factorize: x² - x - 6", options: ["(x-3)(x+2)", "(x-2)(x+3)", "(x+3)(x+2)", "(x-6)(x+1)"], answer: 0 },
+  { question: "Simplify: 4(x+2) - 3x", options: ["x+8", "x+2", "7x+8", "x-2"], answer: 0 },
+  { question: "Solve: 7x - 14 = 0", options: ["x=0", "x=1", "x=2", "x=-2"], answer: 2 },
+  { question: "If 2x + 1 = 9, find x", options: ["3", "4", "5", "6"], answer: 1 },
+  { question: "Simplify: x² + 2x + x²", options: ["2x² + 2x", "x² + 2x", "2x² + x", "x² + x"], answer: 0 },
+  { question: "Solve: x² - 25 = 0", options: ["x=5", "x=-5", "x=±5", "x=0"], answer: 2 },
+  { question: "Factorize: x² + 7x + 10", options: ["(x+2)(x+5)", "(x+1)(x+10)", "(x+5)(x+5)", "(x+2)(x+7)"], answer: 0 },
+  { question: "If x = 3, calculate x² - 2x + 1", options: ["4", "6", "2", "0"], answer: 0 },
+  { question: "Solve: 3x + 9 = 0", options: ["-3", "3", "0", "9"], answer: 0 },
+  { question: "Simplify: 5x - 2x + 3", options: ["3x+3", "7x+3", "3x-3", "5x-3"], answer: 0 },
+  { question: "Expand: (x+1)(x-1)", options: ["x²-1", "x²+1", "x²+2x+1", "x²-2x+1"], answer: 0 },
+  { question: "Factorize: x² - 6x + 9", options: ["(x-3)²", "(x+3)²", "(x-9)(x+1)", "(x-1)(x-9)"], answer: 0 },
+  { question: "Solve: 2x² = 18", options: ["x=3", "x=-3", "x=±3", "x=9"], answer: 2 },
+  { question: "Simplify: 6x - (2x + 3)", options: ["4x-3", "8x-3", "4x+3", "2x+3"], answer: 0 },
+  { question: "Solve: 5(x-2) = 15", options: ["5", "6", "7", "8"], answer: 0 },
+  { question: "If x + y = 10 and x = 6, find y", options: ["3", "4", "5", "6"], answer: 1 },
+  { question: "Simplify: (x+2)(x+2)", options: ["x²+4x+4", "x²+2x+4", "x²+2x+2", "x²+4x+2"], answer: 0 },
+  { question: "Factorize: x² - 10x + 21", options: ["(x-3)(x-7)", "(x-1)(x-21)", "(x-7)(x-7)", "(x-3)(x-8)"], answer: 0 },
+  { question: "Solve: 3x + 7 = 16", options: ["3", "4", "5", "6"], answer: 2 },
+  { question: "Simplify: x² - x² + 5", options: ["0", "5", "x²", "x"], answer: 1 },
+  { question: "Solve: x² + 2x - 8 = 0", options: ["x=2 or -4", "x=-2 or 4", "x=1 or -8", "x=-1 or 8"], answer: 0 },
+  { question: "Factorize: x² + x - 6", options: ["(x+3)(x-2)", "(x+2)(x-3)", "(x+1)(x-6)", "(x-1)(x+6)"], answer: 0 },
+  { question: "If x = 2, find x³ - 3x² + 2", options: ["0", "-2", "2", "4"], answer: 0 },
+  { question: "Solve: 4x + 5 = 17", options: ["2", "3", "4", "5"], answer: 2 },
+  { question: "Simplify: (2x+3) - (x+1)", options: ["x+2", "x+4", "2x+2", "x-2"], answer: 0 }
+    ],
+    Geometry: [
+      { question: "Sum of angles in a triangle?", options: ["90°", "180°", "270°", "360°"], answer: 1 },
+      { question: "A polygon with 5 sides is?", options: ["Hexagon", "Pentagon", "Octagon", "Heptagon"], answer: 1 },
+      { question: "What is the sum of interior angles of a triangle?", options: ["90°", "180°", "270°", "360°"], answer: 1 },
+  { question: "A square has side 5. Its area is?", options: ["10", "15", "25", "20"], answer: 2 },
+  { question: "The volume of a cube with side 3 is?", options: ["6", "9", "27", "12"], answer: 2 },
+  { question: "A rectangle has length 6 and width 4. Its perimeter is?", options: ["10", "20", "24", "14"], answer: 2 },
+  { question: "A circle with radius 7. Its area is?", options: ["154", "49", "44", "77"], answer: 0 },
+  { question: "The circumference of a circle with radius r?", options: ["2πr", "πr²", "πr", "4πr²"], answer: 0 },
+  { question: "The sum of exterior angles of any polygon?", options: ["180°", "360°", "90°", "270°"], answer: 1 },
+  { question: "A right triangle with legs 3 and 4. Hypotenuse?", options: ["5", "6", "7", "4"], answer: 0 },
+  { question: "Area of a triangle with base 10 and height 5?", options: ["25", "50", "15", "30"], answer: 0 },
+  { question: "A parallelogram has base 8 and height 3. Area?", options: ["11", "24", "22", "32"], answer: 1 },
+  { question: "Volume of a cylinder with radius 3, height 5?", options: ["45π", "15π", "30π", "60π"], answer: 0 },
+  { question: "Surface area of a cube with side 4?", options: ["16", "64", "96", "32"], answer: 2 },
+  { question: "The length of diagonal of a square with side 6?", options: ["6√2", "6√3", "12", "√36"], answer: 0 },
+  { question: "Area of a circle with diameter 10?", options: ["25π", "50π", "100π", "10π"], answer: 0 },
+  { question: "Sum of angles in a hexagon?", options: ["540°", "360°", "720°", "600°"], answer: 3 },
+  { question: "A rhombus has diagonals 6 and 8. Area?", options: ["24", "28", "32", "48"], answer: 0 },
+  { question: "Length of diagonal of rectangle 8x6?", options: ["10", "12", "14", "16"], answer: 0 },
+  { question: "Area of trapezium with bases 6 & 10, height 4?", options: ["32", "34", "30", "28"], answer: 0 },
+  { question: "Volume of sphere with radius 3?", options: ["36π", "27π", "113.04", "81π"], answer: 2 },
+  { question: "Surface area of sphere radius 5?", options: ["100π", "50π", "25π", "125π"], answer: 0 },
+  { question: "A cube has volume 27. Side length?", options: ["2", "3", "9", "6"], answer: 1 },
+  { question: "A square pyramid base 4, height 6. Volume?", options: ["32", "16", "8", "48"], answer: 0 },
+  { question: "Area of equilateral triangle side 6?", options: ["6√3", "9√3", "12√3", "18√3"], answer: 1 },
+  { question: "Sum of interior angles of octagon?", options: ["1080°", "720°", "900°", "1200°"], answer: 0 },
+  { question: "Diagonal of rectangle 5x12?", options: ["13", "14", "15", "12"], answer: 0 },
+  { question: "Radius of circle with area 154?", options: ["7", "14", "11", "21"], answer: 0 },
+  { question: "Perimeter of equilateral triangle side 9?", options: ["27", "18", "36", "12"], answer: 0 },
+  { question: "Area of parallelogram base 10, height 8?", options: ["80", "90", "100", "70"], answer: 0 },
+  { question: "A cone radius 3, height 4. Volume?", options: ["12π", "36π", "18π", "24π"], answer: 0 },
+  { question: "Surface area of cone radius 3, slant 5?", options: ["24π", "15π", "8π", "30π"], answer: 0 },
+  { question: "A circle sector radius 7, angle 90°. Area?", options: ["38.5", "38.465", "49", "77"], answer: 1 },
+  { question: "A rectangle sides 7 & 9. Area?", options: ["63", "32", "16", "49"], answer: 0 },
+  { question: "A triangle sides 5, 12, 13. Type?", options: ["Right", "Equilateral", "Isosceles", "Scalene"], answer: 0 },
+  { question: "Circumference of circle diameter 20?", options: ["20π", "40π", "10π", "30π"], answer: 0 },
+  { question: "Volume of cuboid 3x4x5?", options: ["60", "12", "24", "15"], answer: 0 },
+  { question: "Area of rhombus diagonals 10 & 24?", options: ["120", "130", "100", "150"], answer: 0 },
+  { question: "Distance between opposite vertices of cube side 4?", options: ["4√2", "4√3", "8", "6"], answer: 1 },
+  { question: "Area of circle radius 14?", options: ["196π", "49π", "100π", "28π"], answer: 0 },
+  { question: "The sum of exterior angles of pentagon?", options: ["180°", "360°", "540°", "720°"], answer: 1 }
+    ],
+    Calculus: [
+      { question: "Derivative of x²?", options: ["x", "2x", "x²", "2"], answer: 1 },
+      { question: "Integral of 1/x dx?", options: ["x", "ln|x|", "1/x²", "e^x"], answer: 1 },
+        { question: "What is the derivative of x²?", options: ["x", "2x", "x²", "2"], answer: 1 },
+  { question: "The integral of 2x dx?", options: ["x² + C", "x + C", "2x + C", "x³ + C"], answer: 0 },
+  { question: "Derivative of sin(x)?", options: ["cos(x)", "-cos(x)", "sin(x)", "-sin(x)"], answer: 0 },
+  { question: "Integral of cos(x) dx?", options: ["sin(x) + C", "-sin(x) + C", "cos(x) + C", "-cos(x) + C"], answer: 0 },
+  { question: "Derivative of e^x?", options: ["e^x", "x e^(x-1)", "xe^x", "1"], answer: 0 },
+  { question: "Integral of 1/x dx?", options: ["ln|x| + C", "1/x + C", "x + C", "e^x + C"], answer: 0 },
+  { question: "Derivative of ln(x)?", options: ["1/x", "ln(x)", "x", "-1/x"], answer: 0 },
+  { question: "Derivative of x³?", options: ["3x²", "x²", "x³", "3x³"], answer: 0 },
+  { question: "Integral of x² dx?", options: ["x³/3 + C", "2x + C", "x² + C", "x³ + C"], answer: 0 },
+  { question: "Derivative of tan(x)?", options: ["sec²(x)", "cos²(x)", "sin²(x)", "csc²(x)"], answer: 0 },
+  { question: "Integral of sec²(x) dx?", options: ["tan(x) + C", "-tan(x) + C", "sec(x) + C", "-sec(x) + C"], answer: 0 },
+  { question: "Derivative of cos(x)?", options: ["-sin(x)", "cos(x)", "sin(x)", "-cos(x)"], answer: 0 },
+  { question: "Integral of e^x dx?", options: ["e^x + C", "x e^x + C", "xe^x + C", "1 + C"], answer: 0 },
+  { question: "Derivative of 1/x?", options: ["-1/x²", "1/x²", "-x", "x"], answer: 0 },
+  { question: "Integral of 1/(1+x²) dx?", options: ["arctan(x) + C", "arcsin(x) + C", "ln(x) + C", "1/(1+x²) + C"], answer: 0 },
+  { question: "Derivative of arctan(x)?", options: ["1/(1+x²)", "1/(1-x²)", "1/(1+x)", "x²"], answer: 0 },
+  { question: "Integral of cos(3x) dx?", options: ["(1/3)sin(3x) + C", "3sin(3x) + C", "sin(3x) + C", "-sin(3x)/3 + C"], answer: 0 },
+  { question: "Derivative of e^(2x)?", options: ["2e^(2x)", "e^(2x)", "e^x", "x e^(2x)"], answer: 0 },
+  { question: "Integral of x e^x dx?", options: ["(x-1)e^x + C", "xe^x + C", "e^x + C", "x² e^x/2 + C"], answer: 0 },
+  { question: "Derivative of sinh(x)?", options: ["cosh(x)", "sinh(x)", "-cosh(x)", "-sinh(x)"], answer: 0 },
+  { question: "Integral of 1/(sqrt(1-x²)) dx?", options: ["arcsin(x) + C", "arccos(x) + C", "arctan(x) + C", "ln(x) + C"], answer: 0 },
+  { question: "Derivative of arccos(x)?", options: ["-1/sqrt(1-x²)", "1/sqrt(1-x²)", "-1/(1+x²)", "1/(1+x²)"], answer: 0 },
+  { question: "Integral of sec(x)tan(x) dx?", options: ["sec(x) + C", "-sec(x) + C", "tan(x) + C", "-tan(x) + C"], answer: 0 },
+  { question: "Derivative of ln(x²)?", options: ["2/x", "1/x", "x", "2x"], answer: 0 },
+  { question: "Integral of dx/(x²+4)?", options: ["(1/2)arctan(x/2) + C", "arctan(x/4) + C", "ln|x²+4| + C", "1/(x²+4) + C"], answer: 0 },
+  { question: "Derivative of x sin(x)?", options: ["sin(x)+x cos(x)", "x cos(x)", "cos(x)", "x sin(x)"], answer: 0 },
+  { question: "Integral of sin²(x) dx?", options: ["x/2 - sin(2x)/4 + C", "x - sin(2x)/2 + C", "x/2 + C", "-cos²(x)/2 + C"], answer: 0 },
+  { question: "Derivative of ln(sin(x))?", options: ["cot(x)", "tan(x)", "1/sin(x)", "-1/sin(x)"], answer: 0 },
+  { question: "Integral of e^(3x) dx?", options: ["(1/3)e^(3x) + C", "3e^(3x) + C", "e^(3x) + C", "e^x + C"], answer: 0 },
+  { question: "Derivative of cosh(x)?", options: ["sinh(x)", "cosh(x)", "-sinh(x)", "-cosh(x)"], answer: 0 },
+  { question: "Integral of dx/sqrt(1-x²)?", options: ["arcsin(x) + C", "arccos(x) + C", "arctan(x) + C", "ln|x| + C"], answer: 0 },
+  { question: "Derivative of arccot(x)?", options: ["-1/(1+x²)", "1/(1+x²)", "-1/x²", "1/x²"], answer: 0 },
+  { question: "Integral of tan(x) dx?", options: ["-ln|cos(x)| + C", "ln|sin(x)| + C", "ln|tan(x)| + C", "ln|sec(x)| + C"], answer: 0 },
+  { question: "Derivative of x² ln(x)?", options: ["2x ln(x) + x", "x ln(x)", "2x ln(x)", "x²"], answer: 0 },
+  { question: "Integral of dx/(x ln(x))?", options: ["ln|ln(x)| + C", "ln|x| + C", "1/(x ln(x)) + C", "ln|x²| + C"], answer: 0 },
+  { question: "Derivative of arcsin(x)?", options: ["1/sqrt(1-x²)", "-1/sqrt(1-x²)", "1/(1+x²)", "-1/(1+x²)"], answer: 0 },
+  { question: "Integral of x/(x²+1) dx?", options: ["(1/2)ln(x²+1) + C", "ln(x²+1) + C", "x²+1 + C", "1/(x²+1) + C"], answer: 0 },
+  { question: "Derivative of ln(x²+1)?", options: ["2x/(x²+1)", "1/(x²+1)", "2/(x²+1)", "x²+1"], answer: 0 },
+  { question: "Integral of cos²(x) dx?", options: ["x/2 + sin(2x)/4 + C", "x/2 - sin(2x)/4 + C", "x + C", "sin²(x)/2 + C"], answer: 0 }
+
+    ],
+  },
+  Science: {
+    Physics: [
+      { question: "SI unit of force?", options: ["Joule", "Newton", "Watt", "Pascal"], answer: 1 },
+      { question: "Speed of light in vacuum?", options: ["3×10⁸ m/s", "1.5×10⁸ m/s", "3×10⁶ m/s", "3×10⁵ m/s"], answer: 0 },
+    { question: "What is the SI unit of force?", options: ["Newton", "Joule", "Watt", "Pascal"], answer: 0 },
+  { question: "Acceleration due to gravity on Earth?", options: ["9.8 m/s²", "10 m/s²", "9.8 km/s²", "8.9 m/s²"], answer: 0 },
+  { question: "Formula for kinetic energy?", options: ["1/2 mv²", "mv²", "1/2 m²v", "mv"], answer: 0 },
+  { question: "Unit of electric current?", options: ["Ampere", "Volt", "Ohm", "Coulomb"], answer: 0 },
+  { question: "Light travels fastest in?", options: ["Vacuum", "Air", "Water", "Glass"], answer: 0 },
+  { question: "Unit of pressure?", options: ["Pascal", "Newton", "Joule", "Watt"], answer: 0 },
+  { question: "Ohm's law formula?", options: ["V=IR", "V=I/R", "V=I+R", "V=I²R"], answer: 0 },
+  { question: "Work done formula?", options: ["W=F×d", "W=F/d", "W=F+d", "W=Fd²"], answer: 0 },
+  { question: "Power is?", options: ["Work/Time", "Force×Distance", "Energy×Time", "Energy/Distance"], answer: 0 },
+  { question: "Unit of energy?", options: ["Joule", "Newton", "Watt", "Pascal"], answer: 0 },
+  { question: "Density formula?", options: ["Mass/Volume", "Volume/Mass", "Mass×Volume", "Mass+Volume"], answer: 0 },
+  { question: "Acceleration formula?", options: ["Δv/Δt", "v/t", "v²/2", "v×t"], answer: 0 },
+  { question: "Momentum formula?", options: ["p=mv", "p=m/v", "p=m+v", "p=v/m"], answer: 0 },
+  { question: "Unit of frequency?", options: ["Hertz", "Watt", "Joule", "Tesla"], answer: 0 },
+  { question: "Wave speed formula?", options: ["v=fλ", "v=f/λ", "v=λ/f", "v=f+λ"], answer: 0 },
+  { question: "Acceleration due to gravity on Moon?", options: ["1.62 m/s²", "9.8 m/s²", "3.7 m/s²", "0 m/s²"], answer: 0 },
+  { question: "Unit of electric charge?", options: ["Coulomb", "Ampere", "Volt", "Ohm"], answer: 0 },
+  { question: "Potential energy formula?", options: ["PE=mgh", "PE=1/2 mv²", "PE=mg/v", "PE=mv²"], answer: 0 },
+  { question: "Law of inertia is?", options: ["Newton’s First Law", "Newton’s Second Law", "Newton’s Third Law", "Law of Gravitation"], answer: 0 },
+  { question: "Unit of magnetic field?", options: ["Tesla", "Ampere", "Volt", "Watt"], answer: 0 },
+  { question: "Unit of capacitance?", options: ["Farad", "Henry", "Ohm", "Tesla"], answer: 0 },
+  { question: "Formula of Ohm's Law?", options: ["V=IR", "V+IR", "V/I", "IR/V"], answer: 0 },
+  { question: "Reflection of light occurs when?", options: ["Light bounces off surface", "Light passes through medium", "Light is absorbed", "Light refracts"], answer: 0 },
+  { question: "Refraction is?", options: ["Bending of light", "Reflection", "Diffusion", "Dispersion"], answer: 0 },
+  { question: "Unit of work?", options: ["Joule", "Newton", "Watt", "Pascal"], answer: 0 },
+  { question: "Unit of power?", options: ["Watt", "Joule", "Newton", "Pascal"], answer: 0 },
+  { question: "Velocity formula?", options: ["v=d/t", "v=dt", "v=d×t", "v=t/d"], answer: 0 },
+  { question: "Newton’s Second Law formula?", options: ["F=ma", "F=m/v", "F=m+a", "F=a/m"], answer: 0 },
+  { question: "Unit of pressure in CGS?", options: ["dyne/cm²", "Pa", "N/m²", "W/m²"], answer: 0 },
+  { question: "Unit of work in CGS?", options: ["erg", "Joule", "Newton", "Watt"], answer: 0 },
+  { question: "Acceleration due to gravity on Jupiter?", options: ["24.79 m/s²", "9.8 m/s²", "10 m/s²", "15 m/s²"], answer: 0 },
+  { question: "Formula of kinetic energy?", options: ["1/2 mv²", "mv", "m/v", "m+v"], answer: 0 },
+  { question: "Unit of wavelength?", options: ["Meter", "Second", "Hertz", "Newton"], answer: 0 },
+  { question: "Unit of electric potential?", options: ["Volt", "Ampere", "Ohm", "Coulomb"], answer: 0 },
+  { question: "Speed of light in vacuum?", options: ["3×10^8 m/s", "3×10^6 m/s", "3×10^5 m/s", "3×10^7 m/s"], answer: 0 },
+  { question: "Law of universal gravitation by?", options: ["Newton", "Einstein", "Galileo", "Maxwell"], answer: 0 },
+  { question: "Work done is zero when?", options: ["Force perpendicular to displacement", "Force parallel", "Force opposite", "No force"], answer: 0 },
+  { question: "Projectile motion maximum height formula?", options: ["H = u²sin²θ/2g", "H= u²cos²θ/2g", "H= u²/2g", "H= u²tanθ/2g"], answer: 0 },
+  { question: "Time period of simple pendulum?", options: ["T=2π√(L/g)", "T=√(L/g)", "T=2πL/g", "T=2√(L/g)"], answer: 0 }
+    ],
+    Chemistry: [
+  { question: "H₂O is the formula of?", options: ["Oxygen", "Hydrogen", "Water", "Salt"], answer: 2 },
+  { question: "Atomic number of Carbon?", options: ["6", "12", "14", "8"], answer: 0 },
+  { question: "NaCl is commonly known as?", options: ["Baking Soda", "Salt", "Sugar", "Vinegar"], answer: 1 },
+  { question: "pH value of water?", options: ["7", "1", "14", "0"], answer: 0 },
+  { question: "Symbol of Sodium?", options: ["S", "Na", "K", "So"], answer: 1 },
+  { question: "Atomic mass of Hydrogen?", options: ["1", "2", "4", "12"], answer: 0 },
+  { question: "Acid turns blue litmus paper to?", options: ["Red", "Green", "Blue", "Yellow"], answer: 0 },
+  { question: "Base turns red litmus paper to?", options: ["Blue", "Green", "Red", "Yellow"], answer: 0 },
+  { question: "Chemical formula of Carbon Dioxide?", options: ["CO2", "CO", "C2O", "CH4"], answer: 0 },
+  { question: "Atomic number of Oxygen?", options: ["8", "6", "16", "2"], answer: 0 },
+  { question: "Which gas is released during photosynthesis?", options: ["Oxygen", "Carbon Dioxide", "Nitrogen", "Hydrogen"], answer: 0 },
+  { question: "NaOH is?", options: ["Acid", "Base", "Salt", "Water"], answer: 1 },
+  { question: "HCl is?", options: ["Acid", "Base", "Salt", "Water"], answer: 0 },
+  { question: "Atomic number of Nitrogen?", options: ["7", "14", "8", "15"], answer: 0 },
+  { question: "Which gas causes global warming?", options: ["Oxygen", "CO2", "Nitrogen", "Helium"], answer: 1 },
+  { question: "Formula of Sulfuric Acid?", options: ["H2SO4", "HCl", "NaOH", "CH4"], answer: 0 },
+  { question: "Chemical symbol of Iron?", options: ["Ir", "Fe", "I", "In"], answer: 1 },
+  { question: "NaHCO3 is commonly known as?", options: ["Baking Soda", "Salt", "Sugar", "Vinegar"], answer: 0 },
+  { question: "Which element is a noble gas?", options: ["Helium", "Hydrogen", "Oxygen", "Nitrogen"], answer: 0 },
+  { question: "Atomic number of Helium?", options: ["2", "1", "4", "8"], answer: 0 },
+  { question: "Which is a halogen?", options: ["Chlorine", "Oxygen", "Sodium", "Hydrogen"], answer: 0 },
+  { question: "Formula of Methane?", options: ["CH4", "CO2", "C2H6", "H2O"], answer: 0 },
+  { question: "Which is an alkaline earth metal?", options: ["Calcium", "Sodium", "Potassium", "Chlorine"], answer: 0 },
+  { question: "Atomic mass of Helium?", options: ["4", "2", "1", "3"], answer: 0 },
+  { question: "Which gas is lighter than air?", options: ["Hydrogen", "Oxygen", "CO2", "Nitrogen"], answer: 0 },
+  { question: "Boiling point of water (°C)?", options: ["100", "90", "80", "212"], answer: 0 },
+  { question: "Which element has atomic number 1?", options: ["Hydrogen", "Helium", "Oxygen", "Carbon"], answer: 0 },
+  { question: "Chemical symbol of Gold?", options: ["Au", "Ag", "Gd", "Go"], answer: 0 },
+  { question: "H2SO4 is?", options: ["Acid", "Base", "Salt", "Water"], answer: 0 },
+  { question: "NH3 is commonly known as?", options: ["Ammonia", "Methane", "Water", "Hydrogen"], answer: 0 },
+  { question: "Which element is radioactive?", options: ["Uranium", "Oxygen", "Carbon", "Hydrogen"], answer: 0 },
+  { question: "Atomic number of Sodium?", options: ["11", "12", "10", "8"], answer: 0 },
+  { question: "Formula of Table Sugar?", options: ["C12H22O11", "CH4", "CO2", "NaCl"], answer: 0 },
+  { question: "Which gas is essential for respiration?", options: ["Oxygen", "Carbon Dioxide", "Nitrogen", "Helium"], answer: 0 },
+  { question: "Which element is in Group 1 of periodic table?", options: ["Sodium", "Oxygen", "Helium", "Carbon"], answer: 0 },
+  { question: "Atomic mass of Carbon?", options: ["12", "6", "14", "16"], answer: 0 },
+  { question: "Which element is liquid at room temperature?", options: ["Mercury", "Bromine", "Water", "Oxygen"], answer: 0 },
+  { question: "Formula of Hydrogen Peroxide?", options: ["H2O2", "HO", "H2O", "O2"], answer: 0 },
+  { question: "Which is an alkali metal?", options: ["Potassium", "Calcium", "Magnesium", "Iron"], answer: 0 }
+],
+
+Biology: [
+  { question: "Basic unit of life?", options: ["Atom", "Molecule", "Cell", "Organ"], answer: 2 },
+  { question: "Which organ pumps blood?", options: ["Brain", "Heart", "Lungs", "Liver"], answer: 1 },
+  { question: "DNA stands for?", options: ["Deoxyribonucleic Acid", "Ribonucleic Acid", "Dioxin Acid", "Dicarboxylic Acid"], answer: 0 },
+  { question: "Which organ filters blood?", options: ["Kidney", "Liver", "Heart", "Lungs"], answer: 0 },
+  { question: "Which blood cells carry oxygen?", options: ["White Blood Cells", "Red Blood Cells", "Platelets", "Plasma"], answer: 1 },
+  { question: "Which organ is part of CNS?", options: ["Brain", "Heart", "Lungs", "Kidney"], answer: 0 },
+  { question: "Photosynthesis occurs in?", options: ["Chloroplast", "Mitochondria", "Nucleus", "Ribosome"], answer: 0 },
+  { question: "Which vitamin is made in skin?", options: ["Vitamin D", "Vitamin A", "Vitamin C", "Vitamin B12"], answer: 0 },
+  { question: "Humans have how many chromosomes?", options: ["46", "44", "48", "42"], answer: 0 },
+  { question: "Largest organ in human body?", options: ["Skin", "Heart", "Liver", "Brain"], answer: 0 },
+  { question: "Smallest bone in human body?", options: ["Stapes", "Femur", "Tibia", "Ulna"], answer: 0 },
+  { question: "Which blood component clots blood?", options: ["Platelets", "Red Cells", "White Cells", "Plasma"], answer: 0 },
+  { question: "Respiration occurs in?", options: ["Mitochondria", "Chloroplast", "Nucleus", "Ribosome"], answer: 0 },
+  { question: "Which organ produces insulin?", options: ["Pancreas", "Liver", "Kidney", "Heart"], answer: 0 },
+  { question: "Which system includes lungs?", options: ["Respiratory", "Digestive", "Circulatory", "Excretory"], answer: 0 },
+  { question: "Which system controls hormones?", options: ["Endocrine", "Nervous", "Circulatory", "Excretory"], answer: 0 },
+  { question: "Which is a prokaryote?", options: ["Bacteria", "Fungus", "Plant", "Animal"], answer: 0 },
+  { question: "Which is a mammal?", options: ["Whale", "Shark", "Crocodile", "Frog"], answer: 0 },
+  { question: "Which organ stores bile?", options: ["Gallbladder", "Liver", "Pancreas", "Stomach"], answer: 0 },
+  { question: "Which vitamin prevents scurvy?", options: ["Vitamin C", "Vitamin D", "Vitamin A", "Vitamin B"], answer: 0 },
+  { question: "Which part of plant conducts water?", options: ["Xylem", "Phloem", "Stomata", "Root Hair"], answer: 0 },
+  { question: "Which part of plant transports food?", options: ["Phloem", "Xylem", "Leaf", "Stem"], answer: 0 },
+  { question: "Which organ produces bile?", options: ["Liver", "Kidney", "Pancreas", "Gallbladder"], answer: 0 },
+  { question: "Which cells help fight infection?", options: ["White Blood Cells", "Red Blood Cells", "Platelets", "Plasma"], answer: 0 },
+  { question: "Which organ detoxifies blood?", options: ["Liver", "Kidney", "Lungs", "Heart"], answer: 0 },
+  { question: "Which is a carnivore?", options: ["Lion", "Cow", "Sheep", "Deer"], answer: 0 },
+  { question: "Which is a herbivore?", options: ["Cow", "Lion", "Tiger", "Wolf"], answer: 0 },
+  { question: "Which organ controls balance?", options: ["Cerebellum", "Medulla", "Cortex", "Spinal Cord"], answer: 0 },
+  { question: "Which organ regulates body temperature?", options: ["Skin", "Liver", "Heart", "Kidney"], answer: 0 },
+  { question: "Which system removes waste?", options: ["Excretory", "Circulatory", "Digestive", "Respiratory"], answer: 0 },
+  { question: "Which organ absorbs nutrients?", options: ["Small Intestine", "Stomach", "Liver", "Pancreas"], answer: 0 },
+  { question: "Which blood type is universal donor?", options: ["O-", "A+", "B+", "AB+"], answer: 0 },
+  { question: "Which blood type is universal recipient?", options: ["AB+", "O-", "A+", "B+"], answer: 0 },
+  { question: "Which hormone controls metabolism?", options: ["Thyroxine", "Insulin", "Adrenaline", "Testosterone"], answer: 0 },
+  { question: "Which organ secretes saliva?", options: ["Salivary Glands", "Liver", "Pancreas", "Kidney"], answer: 0 },
+  { question: "Which part of brain controls breathing?", options: ["Medulla", "Cerebellum", "Cortex", "Spinal Cord"], answer: 0 },
+  { question: "Which is a vertebrate?", options: ["Human", "Snake", "Jellyfish", "Earthworm"], answer: 0 }
+]
+
+  },
+  History: {
+    Ancient: [
+  { question: "Who built the Pyramids of Giza?", options: ["Romans", "Egyptians", "Greeks", "Mayans"], answer: 1 },
+  { question: "Which civilization invented cuneiform?", options: ["Egyptians", "Sumerians", "Indians", "Chinese"], answer: 1 },
+  { question: "Where is Machu Picchu located?", options: ["Peru", "Mexico", "Egypt", "Greece"], answer: 0 },
+  { question: "Who was the last Pharaoh of Egypt?", options: ["Tutankhamun", "Cleopatra", "Ramses II", "Nefertiti"], answer: 1 },
+  { question: "Olympic Games originated in?", options: ["Rome", "Greece", "Egypt", "Persia"], answer: 1 },
+  { question: "Who wrote the Iliad?", options: ["Homer", "Socrates", "Plato", "Aristotle"], answer: 0 },
+  { question: "Stonehenge is located in?", options: ["France", "England", "Germany", "Italy"], answer: 1 },
+  { question: "Hammurabi is famous for?", options: ["Inventions", "Law Code", "Philosophy", "Architecture"], answer: 1 },
+  { question: "Which river was central to Ancient Egypt?", options: ["Tigris", "Nile", "Amazon", "Yangtze"], answer: 1 },
+  { question: "The Great Wall of China was built to?", options: ["Protect from invasions", "Trade", "Festivals", "Housing"], answer: 0 },
+  { question: "First empire in Mesopotamia?", options: ["Babylon", "Sumer", "Assyria", "Persia"], answer: 1 },
+  { question: "Which civilization used hieroglyphics?", options: ["Egyptians", "Romans", "Greeks", "Mayans"], answer: 0 },
+  { question: "Who was Alexander the Great?", options: ["Egyptian Pharaoh", "Macedonian King", "Roman Emperor", "Greek Philosopher"], answer: 1 },
+  { question: "The Rosetta Stone helped decode?", options: ["Greek", "Latin", "Hieroglyphics", "Cuneiform"], answer: 2 },
+  { question: "Ziggurats were built by?", options: ["Sumerians", "Romans", "Greeks", "Egyptians"], answer: 0 },
+  { question: "Ancient Olympics were held every?", options: ["2 years", "4 years", "5 years", "1 year"], answer: 1 },
+  { question: "Who founded Rome according to legend?", options: ["Romulus", "Remus", "Julius Caesar", "Augustus"], answer: 0 },
+  { question: "Which ancient civilization built aqueducts?", options: ["Romans", "Egyptians", "Greeks", "Persians"], answer: 0 },
+  { question: "The Code of Hammurabi is from?", options: ["Egypt", "Mesopotamia", "India", "China"], answer: 1 },
+  { question: "Which city was destroyed by Mt. Vesuvius?", options: ["Pompeii", "Rome", "Athens", "Carthage"], answer: 0 },
+  { question: "Who was the pharaoh during the Exodus?", options: ["Ramses II", "Tutankhamun", "Cleopatra", "Akhenaten"], answer: 0 },
+  { question: "Ancient Greece was made of?", options: ["City-States", "Provinces", "Empires", "Kingdoms"], answer: 0 },
+  { question: "Which empire was ruled by Cyrus the Great?", options: ["Persian", "Roman", "Greek", "Egyptian"], answer: 0 },
+  { question: "Which ancient civilization built the Colosseum?", options: ["Romans", "Greeks", "Egyptians", "Persians"], answer: 0 },
+  { question: "The Parthenon is in?", options: ["Rome", "Athens", "Cairo", "Istanbul"], answer: 1 },
+  { question: "Who was Hammurabi?", options: ["King", "Philosopher", "General", "Farmer"], answer: 0 },
+  { question: "The Epic of Gilgamesh belongs to?", options: ["Sumer", "Rome", "Egypt", "Greece"], answer: 0 },
+  { question: "Which is NOT an Ancient civilization?", options: ["Maya", "Inca", "USA", "Egypt"], answer: 2 },
+  { question: "Where was the Indus Valley civilization?", options: ["India/Pakistan", "China", "Egypt", "Mesopotamia"], answer: 0 },
+  { question: "The Sphinx is in?", options: ["Egypt", "Greece", "Rome", "China"], answer: 0 },
+  { question: "Who wrote the Odyssey?", options: ["Homer", "Plato", "Socrates", "Aristotle"], answer: 0 },
+  { question: "Which metal did Ancient Egyptians use first?", options: ["Copper", "Iron", "Gold", "Silver"], answer: 0 },
+  { question: "Which river was central to Mesopotamia?", options: ["Tigris & Euphrates", "Nile", "Amazon", "Yangtze"], answer: 0 },
+  { question: "Which people built Stonehenge?", options: ["Britons", "Romans", "Egyptians", "Greeks"], answer: 0 },
+  { question: "Which empire built Persepolis?", options: ["Persian", "Roman", "Greek", "Egyptian"], answer: 0 },
+  { question: "Who was Julius Caesar?", options: ["Roman general & dictator", "Greek philosopher", "Egyptian pharaoh", "Persian king"], answer: 0 },
+  { question: "The Colossus of Rhodes was made by?", options: ["Greeks", "Romans", "Egyptians", "Persians"], answer: 0 },
+  { question: "Which ancient city had Hanging Gardens?", options: ["Babylon", "Rome", "Athens", "Cairo"], answer: 0 }
+],
+
+Medieval: [
+  { question: "First Mughal emperor of India?", options: ["Akbar", "Babur", "Shah Jahan", "Aurangzeb"], answer: 1 },
+  { question: "Who built the Taj Mahal?", options: ["Shah Jahan", "Akbar", "Babur", "Humayun"], answer: 0 },
+  { question: "Joan of Arc was from?", options: ["France", "England", "Spain", "Germany"], answer: 0 },
+  { question: "Charlemagne was king of?", options: ["Franks", "Romans", "Goths", "Vikings"], answer: 0 },
+  { question: "Magna Carta was signed in?", options: ["1215", "1066", "1492", "1307"], answer: 0 },
+  { question: "The Hundred Years’ War was between?", options: ["France & England", "Spain & Portugal", "Rome & Greece", "Persia & Egypt"], answer: 0 },
+  { question: "Vikings originated from?", options: ["Scandinavia", "Germany", "France", "England"], answer: 0 },
+  { question: "Gutenberg invented?", options: ["Printing Press", "Compass", "Gunpowder", "Telescope"], answer: 0 },
+  { question: "The Black Death occurred in?", options: ["14th century", "13th century", "15th century", "16th century"], answer: 0 },
+  { question: "Who was Richard the Lionheart?", options: ["King of England", "King of France", "King of Spain", "Pope"], answer: 0 },
+  { question: "Crusades were?", options: ["Religious wars", "Trade agreements", "Festivals", "Political treaties"], answer: 0 },
+  { question: "Joan of Arc was burned at?", options: ["Rouen", "Paris", "London", "Rome"], answer: 0 },
+  { question: "The Ottoman Empire was founded in?", options: ["1299", "1453", "1200", "1500"], answer: 0 },
+  { question: "Which medieval weapon was a siege engine?", options: ["Catapult", "Sword", "Bow", "Spear"], answer: 0 },
+  { question: "Marco Polo traveled to?", options: ["China", "India", "Egypt", "Persia"], answer: 0 },
+  { question: "Which was a medieval university?", options: ["Oxford", "MIT", "Harvard", "Stanford"], answer: 0 },
+  { question: "Which king was part of the War of Roses?", options: ["Richard III", "Henry VIII", "Louis XIV", "Charles I"], answer: 0 },
+  { question: "Feudalism involved?", options: ["Lords & Vassals", "Kings & Presidents", "Senators & Citizens", "Emperors & Slaves"], answer: 0 },
+  { question: "The Hundred Years War ended in?", options: ["1453", "1400", "1500", "1492"], answer: 0 },
+  { question: "Medieval castles were mainly for?", options: ["Defense", "Commerce", "Education", "Religion"], answer: 0 },
+  // ... add up to 40+ questions
+],
+
+Modern: [
+  { question: "First President of USA?", options: ["Lincoln", "Jefferson", "Washington", "Adams"], answer: 2 },
+  { question: "Who invented the telephone?", options: ["Bell", "Edison", "Tesla", "Marconi"], answer: 0 },
+  { question: "World War I started in?", options: ["1914", "1939", "1918", "1920"], answer: 0 },
+  { question: "World War II ended in?", options: ["1945", "1939", "1918", "1950"], answer: 0 },
+  { question: "Who was Mahatma Gandhi?", options: ["Leader of India’s independence", "President of India", "British General", "King"], answer: 0 },
+  { question: "Russian Revolution year?", options: ["1917", "1905", "1920", "1914"], answer: 0 },
+  { question: "Who invented the light bulb?", options: ["Edison", "Tesla", "Bell", "Franklin"], answer: 0 },
+  { question: "Fall of Berlin Wall?", options: ["1989", "1990", "1980", "1991"], answer: 0 },
+  { question: "First man on Moon?", options: ["Neil Armstrong", "Yuri Gagarin", "Buzz Aldrin", "Michael Collins"], answer: 0 },
+  { question: "United Nations founded in?", options: ["1945", "1919", "1939", "1950"], answer: 0 },
+  { question: "First atomic bomb used in?", options: ["Hiroshima", "Nagasaki", "Tokyo", "Osaka"], answer: 0 },
+  { question: "Who wrote '1984'?", options: ["George Orwell", "Aldous Huxley", "Mark Twain", "Hemingway"], answer: 0 },
+  { question: "Who was Winston Churchill?", options: ["Prime Minister UK", "President USA", "General Germany", "King"], answer: 0 },
+  { question: "Which country gained independence in 1947?", options: ["India", "Pakistan", "Bangladesh", "Sri Lanka"], answer: 0 },
+  { question: "Which empire ended in 1917?", options: ["Russian Empire", "Ottoman Empire", "British Empire", "Mughal Empire"], answer: 0 },
+  // ... add up to 40+ questions
+]
+
+  },
+  Sports: {
+    Football: [
+  { question: "How many players in a football team?", options: ["9", "10", "11", "12"], answer: 2 },
+  { question: "A football match lasts?", options: ["60 min", "90 min", "80 min", "100 min"], answer: 1 },
+  { question: "What is the maximum number of substitutes allowed in FIFA?", options: ["3", "5", "7", "11"], answer: 1 },
+  { question: "Offside rule applies when?", options: ["Player behind defense", "Player ahead of last defender", "Goalkeeper moves", "Ball crosses halfway"], answer: 1 },
+  { question: "Which country won the first World Cup?", options: ["Brazil", "Germany", "Uruguay", "Italy"], answer: 2 },
+  { question: "A goal is worth?", options: ["1", "2", "3", "0"], answer: 0 },
+  { question: "What is a hat-trick?", options: ["Three assists", "Three goals by a player", "Three fouls", "Three saves"], answer: 1 },
+  { question: "Who can touch the ball with hands?", options: ["All players", "Goalkeeper", "Captain", "Referee"], answer: 1 },
+  { question: "Yellow card indicates?", options: ["Warning", "Red card", "Goal", "Penalty"], answer: 0 },
+  { question: "Red card means?", options: ["Warning", "Substitution", "Player sent off", "Goal"], answer: 2 },
+  { question: "Corner kick awarded when?", options: ["Ball crosses goal line last touched by defender", "Ball crosses midfield", "Goal scored", "Foul"], answer: 0 },
+  { question: "What is a penalty kick?", options: ["Kick from corner", "Kick from penalty spot", "Free kick", "Throw-in"], answer: 1 },
+  { question: "Which player wears number 10 usually?", options: ["Striker", "Goalkeeper", "Midfielder", "Captain"], answer: 2 },
+  { question: "FIFA stands for?", options: ["Football International Federation Association", "Federation Internationale de Football Association", "Football India Federation Association", "Federation International Football Authority"], answer: 1 },
+  { question: "How many referees in standard match?", options: ["1", "2", "3", "4"], answer: 2 },
+  // ... add up to 40+ questions
+],
+
+Cricket: [
+  { question: "How many overs in ODI match?", options: ["20", "40", "50", "60"], answer: 2 },
+  { question: "How many players in a cricket team?", options: ["9", "10", "11", "12"], answer: 2 },
+  { question: "What is a century?", options: ["100 runs by a team", "100 balls bowled", "100 runs by a batsman", "100 wickets"], answer: 2 },
+  { question: "How many balls in an over?", options: ["6", "5", "8", "10"], answer: 0 },
+  { question: "Which is longest format?", options: ["T20", "ODI", "Test", "T10"], answer: 2 },
+  { question: "Duck in cricket means?", options: ["0 runs", "1 run", "2 wickets", "No ball"], answer: 0 },
+  { question: "Bowled out means?", options: ["All players dismissed", "No runs scored", "Match over", "All overs bowled"], answer: 0 },
+  { question: "LBW stands for?", options: ["Leg Before Wicket", "Left Ball Wicket", "Last Ball Win", "Leg Beyond Wicket"], answer: 0 },
+  { question: "Who captains a cricket team?", options: ["Coach", "Captain", "Umpire", "Manager"], answer: 1 },
+  { question: "How many fielders allowed outside circle in T20?", options: ["3", "4", "5", "6"], answer: 2 },
+  // ... add up to 40+ questions
+],
+
+Basketball: [
+  { question: "How many points for a 3-pointer?", options: ["1", "2", "3", "4"], answer: 2 },
+  { question: "How many players on court per team?", options: ["5", "6", "7", "8"], answer: 0 },
+  { question: "Basketball hoop height?", options: ["8 ft", "9 ft", "10 ft", "11 ft"], answer: 2 },
+  { question: "Duration of NBA game?", options: ["48 min", "40 min", "50 min", "60 min"], answer: 0 },
+  { question: "Who can score free throws?", options: ["Only guard", "Only forward", "Any player fouled", "Coach"], answer: 2 },
+  { question: "What is a slam dunk?", options: ["Shooting from 3m", "Jumping and scoring directly", "Passing", "Dribbling"], answer: 1 },
+  { question: "Violation for walking without dribbling?", options: ["Traveling", "Double dribble", "Foul", "Block"], answer: 0 },
+  { question: "Shot clock in NBA?", options: ["24 sec", "30 sec", "35 sec", "40 sec"], answer: 0 },
+  { question: "How many quarters in a game?", options: ["2", "3", "4", "5"], answer: 2 },
+  { question: "What is assist?", options: ["Scoring", "Helping teammate score", "Blocking", "Stealing"], answer: 1 },
+  // ... add up to 40+ questions
+]
+
+  },
+};
+
+// ========== UTIL: SHUFFLE ==========
+function shuffle(array) {
+  return array
+    .map((a) => ({ sort: Math.random(), value: a }))
+    .sort((a, b) => a.sort - b.sort)
+    .map((a) => a.value);
+}
+
+// ========== LOGIN ==========
+function handleLogin() {
+  const user = document.getElementById("authUser").value.trim();
+  const pass = document.getElementById("authPass").value.trim();
+  if (!user || !pass) return showToast("Enter username & password");
+
+  state.user = user;
+  localStorage.setItem("iqUser", user);
+  document.getElementById("authView").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  document.getElementById("userHello").innerText = `Hi, ${user}`;
+  openCourses();
+}
+
+function handleRegister() {
+  showToast("Account created! Now login.");
+}
+
+function logout() {
+  state.user = null;
+  localStorage.removeItem("iqUser");
+  document.getElementById("app").classList.add("hidden");
+  document.getElementById("authView").classList.remove("hidden");
+}
+
+// ========== NAVIGATION ==========
+function openCourses() {
+  hideAllViews();
+  document.getElementById("coursesView").classList.remove("hidden");
+  renderCourses();
+}
+
+function openProfile() {
+  hideAllViews();
+  document.getElementById("profileView").classList.remove("hidden");
+  renderProfile();
+}
+
+function openQuizShortcut() {
+  openCourses();
+}
+
+function hideAllViews() {
+  ["coursesView","courseDetailView","quizView","reviewView","profileView"]
+    .forEach((id) => document.getElementById(id).classList.add("hidden"));
+}
+
+// ========== COURSES ==========
+const COURSES = {
+  Maths: ["Algebra", "Geometry", "Calculus"],
+  Science: ["Physics", "Chemistry", "Biology"],
+  History: ["Ancient", "Medieval", "Modern"],
+  Sports: ["Football", "Cricket", "Basketball"],
+};
+
+function renderCourses() {
+  const grid = document.getElementById("courseNeonGrid");
+  grid.innerHTML = "";
+  Object.keys(COURSES).forEach((course) => {
+    const btn = document.createElement("button");
+    btn.className = "nbtn";
+    btn.innerText = course;
+    btn.onclick = () => openCourseDetail(course);
+    grid.appendChild(btn);
+  });
+}
+
+function openCourseDetail(course) {
+  state.course = course;
+  hideAllViews();
+  document.getElementById("courseDetailView").classList.remove("hidden");
+  document.getElementById("cdTitle").innerText = course;
+  document.getElementById("cdPill").innerText = course;
+  const grid = document.getElementById("topicGrid");
+  grid.innerHTML = "";
+  COURSES[course].forEach((topic) => {
+    const btn = document.createElement("button");
+    btn.className = "nbtn";
+    btn.innerText = topic;
+    btn.onclick = () => startQuiz(course, topic);
+    grid.appendChild(btn);
+  });
+}
+
+// ========== QUIZ ==========
+function startQuiz(course, topic) {
+  state.course = course;
+  state.topic = topic;
+  state.currentQ = 0;
+
+  let qs = QUESTIONS[course]?.[topic] || [];
+  if (!qs.length) return showToast("No questions found.");
+
+  // 🔀 shuffle and limit to 10
+  qs = shuffle(qs).slice(0, 10);
+
+  state.questions = qs;
+  hideAllViews();
+  document.getElementById("quizView").classList.remove("hidden");
+  document.getElementById("quizPill").innerText = course;
+  document.getElementById("quizTitle").innerText = topic;
+  document.getElementById("qTotal").innerText = qs.length;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = state.questions[state.currentQ];
+  if (!q) return;
+
+  document.getElementById("qBox").innerText = q.question;
+  const aBox = document.getElementById("aBox");
+  aBox.innerHTML = "";
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement("button");
+    btn.className = "btn btn-ghost";
+    btn.innerText = opt;
+    btn.onclick = () => selectAnswer(i);
+    if (q.selected === i) btn.style.border = "2px solid var(--brand)";
+    aBox.appendChild(btn);
+  });
+  document.getElementById("qBar").style.width =
+    ((state.currentQ + 1) / state.questions.length) * 100 + "%";
+}
+
+function selectAnswer(i) {
+  state.questions[state.currentQ].selected = i;
+  renderQuestion();
+}
+
+function nextQ() {
+  if (state.currentQ < state.questions.length - 1) {
+    state.currentQ++;
+    renderQuestion();
+  } else {
+    finishQuiz();
+  }
+}
+
+
+function prevQ() {
+  if (state.currentQ > 0) {
+    state.currentQ--;
+    renderQuestion();
+  }
+}
+
+function confirmExit() {
+  if (confirm("Exit quiz? Progress will be lost.")) openCourses();
+}
+
+// ========== FINISH QUIZ WITH IQ ==========
+function finishQuiz() {
+  hideAllViews();
+  document.getElementById("reviewView").classList.remove("hidden");
+
+  let correct = 0;
+  const list = document.getElementById("revList");
+  list.innerHTML = "";
+  state.questions.forEach((q, idx) => {
+    const li = document.createElement("div");
+    li.style.marginBottom = "14px";
+    const chosen = q.selected != null ? q.options[q.selected] : "No answer";
+    const isCorrect = q.selected === q.answer;
+    if (isCorrect) correct++;
+    li.innerHTML = `
+      <div><b>Q${idx + 1}:</b> ${q.question}</div>
+      <div>Your answer: ${chosen}</div>
+      <div>Correct: ${q.options[q.answer]}</div>
+    `;
+    list.appendChild(li);
+  });
+
+  // ✅ calculate IQ (scaled to 200)
+  const iqScore = Math.round((correct / state.questions.length) * 200);
+
+  // ✅ show IQ at the top of review
+  const iqDiv = document.createElement("div");
+  iqDiv.style.margin = "20px 0";
+  iqDiv.style.fontSize = "20px";
+  iqDiv.style.fontWeight = "900";
+  iqDiv.style.color = "var(--brand)";
+  iqDiv.innerText = `Your IQ Score: ${iqScore}`;
+  list.prepend(iqDiv);
+
+  // ✅ save to profile scoreboard
+  state.scores.push({
+    course: state.course,
+    topic: state.topic,
+    score: correct,
+    total: state.questions.length,
+    iq: iqScore,
+  });
+  saveScores();
+}
+
+
+// ========== PROFILE ==========
+function renderProfile() {
+  const my = document.getElementById("myScores");
+  my.innerHTML = "";
+
+  let total = state.scores.length;
+  let avg = total ? Math.round(state.scores.reduce((a, s) => a + s.iq, 0) / total) : "-";
+
+  document.getElementById("meAttempts").innerText = total;
+  document.getElementById("meAvg").innerText = avg;
+
+  state.scores.forEach((s) => {
+    const li = document.createElement("li");
+    li.innerText = `${s.course} • ${s.correct}/${s.total} • IQ ${s.iq}`;
+    my.appendChild(li);
+  });
+}
+function saveScores() {
+  localStorage.setItem("iqScores", JSON.stringify(state.scores));
+}
+
+// ========== TOAST ==========
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.innerText = msg;
+  toast.classList.remove("hidden");
+  setTimeout(() => toast.classList.add("hidden"), 3000);
+}
+
+// ========== INIT ==========
+(function init() {
+  const savedUser = localStorage.getItem("iqUser");
+  const savedScores = localStorage.getItem("iqScores");
+  if (savedUser) {
+    state.user = savedUser;
+    document.getElementById("authView").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("userHello").innerText = `Hi, ${savedUser}`;
+    if (savedScores) state.scores = JSON.parse(savedScores);
+    openCourses();
+  }
+})();
+
+</script>
+</body>
+</html>
